@@ -957,11 +957,13 @@ static void set_hbm_mode(struct work_struct *work)
 	mutex_lock(&panel->panel_lock);
 	switch (level) {
 	case 0:
-		__dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_HBM_OFF, false);
-		printk(KERN_DEBUG
-		       "When HBM OFF -->hbm_backight = %d panel->bl_config.bl_level =%d\n",
-		       panel->hbm_backlight, panel->bl_config.bl_level);
-		dsi_panel_update_backlight(panel, panel->hbm_backlight);
+		if (!HBM_flag) {
+			__dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_HBM_OFF, false);
+			pr_debug(
+				"When HBM OFF -->hbm_backight = %d panel->bl_config.bl_level =%d\n",
+				panel->hbm_backlight, panel->bl_config.bl_level);
+			dsi_panel_update_backlight(panel, panel->hbm_backlight);
+		}
 		break;
 	case 1:
 		__dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_HBM_ON_5, false);
@@ -969,7 +971,7 @@ static void set_hbm_mode(struct work_struct *work)
 	}
 	mutex_unlock(&panel->panel_lock);
 
-	pr_info("Set HBM Mode = %d\n", level);
+	pr_debug("Set HBM Mode = %d\n", level);
 }
 
 DECLARE_WORK(hbm_work, set_hbm_mode);
@@ -5386,8 +5388,9 @@ int dsi_panel_set_hbm_mode(struct dsi_panel *panel, int level)
 			goto error;
 		} else {
 			HBM_flag = true;
-			rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_HBM_ON_5);
-			pr_err("Send DSI_CMD_SET_HBM_ON_5 cmds.\n");
+			//ensure we also skip wait here for 7T so fod is less apparent
+			__dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_HBM_ON_5, false);
+			pr_debug("Send DSI_CMD_SET_HBM_ON_5 cmds.\n");
 		}
 		break;
 
